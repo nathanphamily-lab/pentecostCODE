@@ -20,6 +20,7 @@ const MAPPING = {
   'person.fill': 'person',
   'gearshape.fill': 'settings',
   'lock.fill': 'lock',
+  plus: 'add',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
