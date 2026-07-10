@@ -19,6 +19,7 @@ const MAPPING = {
   pencil: 'edit',
   'person.fill': 'person',
   'gearshape.fill': 'settings',
+  'lock.fill': 'lock',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
