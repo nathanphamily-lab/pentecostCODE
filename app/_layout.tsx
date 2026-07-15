@@ -41,11 +41,11 @@ function RootNavigator() {
 
       <Stack.Protected guard={!!user && !!selectedProfile}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="lesson" options={{ title: 'Lesson' }} />
+        <Stack.Screen name="lesson" options={{ headerShown: false }} />
         <Stack.Screen name="quiz" options={{ title: 'Quiz' }} />
         <Stack.Screen
           name="phonics-breakdown"
-          options={{ presentation: 'modal', title: 'Phonics Breakdown' }}
+          options={{ presentation: 'transparentModal', animation: 'fade', headerShown: false }}
         />
       </Stack.Protected>
     </Stack>
