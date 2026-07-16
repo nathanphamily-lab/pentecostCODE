@@ -42,7 +42,7 @@ function RootNavigator() {
       <Stack.Protected guard={!!user && !!selectedProfile}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="lesson" options={{ headerShown: false }} />
-        <Stack.Screen name="quiz" options={{ title: 'Quiz' }} />
+        <Stack.Screen name="quiz" options={{ headerShown: false }} />
         <Stack.Screen
           name="phonics-breakdown"
           options={{ presentation: 'transparentModal', animation: 'fade', headerShown: false }}

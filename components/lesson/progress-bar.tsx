@@ -1,15 +1,15 @@
 /**
- * Story progress bar (§6.2): a rounded track with a fill plus an "X / Y" label
- * showing how many sentences are complete.
+ * Progress bar (§6.2): a rounded track with a fill plus an "X / Y" label showing how many
+ * steps are complete — sentences on the Lesson screen, questions on the Quiz screen.
  */
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
 
 type ProgressBarProps = {
-  /** Sentences completed so far. */
+  /** Steps completed so far. */
   current: number;
-  /** Total sentences in the story. */
+  /** Total steps. */
   total: number;
 };
 

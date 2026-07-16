@@ -10,7 +10,7 @@
  * The story is chosen from an optional `storyId` route param and defaults to Creation.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -31,6 +31,15 @@ export default function LessonScreen() {
 
   // Sentences completed = current index, plus the last one once the story ends.
   const completed = isDone ? total : sentenceIndex;
+
+  // §6.4 / §4.1 Step 6: the quiz appears on its own once the last sentence finishes.
+  // `replace`, not `push`, so the spent lesson leaves the stack — otherwise Back from the
+  // quiz would land on a finished story that immediately restarts narrating.
+  useEffect(() => {
+    if (isDone) {
+      router.replace({ pathname: '/quiz', params: { storyId: story.id } });
+    }
+  }, [isDone, router, story.id]);
 
   return (
     <View style={styles.root}>
