@@ -2,24 +2,28 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { LessonCard } from '@/components/home/lesson-card';
 import { ThemedText } from '@/components/themed-text';
-import type { HomeRow } from '@/constants/home-content';
+import type { Content } from '@/constants/content';
 
 /**
  * One Netflix-style content row (§6.1): a bold title above a horizontally
- * scrollable strip of lesson cards.
+ * scrollable strip of lesson cards, backed by one category of the content library.
  */
-export function ContentRow({ row }: { row: HomeRow }) {
+export function ContentRow({ title, items }: { title: string; items: Content[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <>
-      <ThemedText type="subtitle" style={styles.title}>
-        {row.title}
+      <ThemedText type="sectionHeader" style={styles.title}>
+        {title}
       </ThemedText>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.strip}>
-        {row.cards.map((card) => (
-          <LessonCard key={card.id} card={card} />
+        {items.map((item) => (
+          <LessonCard key={item.id} item={item} />
         ))}
       </ScrollView>
     </>

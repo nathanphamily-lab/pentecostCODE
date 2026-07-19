@@ -1,60 +1,72 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
+import type { Tokens } from '@/constants/tokens';
+import { useTokens } from '@/hooks/use-tokens';
+
+/**
+ * Variants map onto the design type scale in `constants/tokens.ts`.
+ * `default`, `title` and `defaultSemiBold` are retained as aliases so existing
+ * call sites keep working; prefer the token names for new code.
+ */
+export type ThemedTextType =
+  | 'h1'
+  | 'subtitle'
+  | 'sectionHeader'
+  | 'link'
+  | 'cardLabel'
+  | 'navLabel'
+  | 'body'
+  // Aliases.
+  | 'default'
+  | 'title'
+  | 'defaultSemiBold';
 
 export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  /** Overrides the variant's color. */
+  color?: string;
+  /** Renders in the muted secondary tone. */
+  muted?: boolean;
+  type?: ThemedTextType;
 };
 
 export function ThemedText({
   style,
-  lightColor,
-  darkColor,
+  color,
+  muted = false,
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
+
+  const override = muted ? tokens.colors.textMuted : color;
 
   return (
-    <Text
-      style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        style,
-      ]}
-      {...rest}
-    />
+    <Text style={[styles[type], override != null && { color: override }, style]} {...rest} />
   );
 }
 
-const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
-  },
-});
+function makeStyles(t: Tokens) {
+  const { type, colors } = t;
+
+  const h1 = { ...type.h1, color: colors.textPrimary };
+  const sectionHeader = { ...type.sectionHeader, color: colors.textPrimary };
+  const cardLabel = { ...type.cardLabel, color: colors.textCardLabel };
+  const body = { ...type.body, color: colors.textPrimary };
+
+  return StyleSheet.create({
+    h1,
+    sectionHeader,
+    cardLabel,
+    body,
+    subtitle: { ...type.subtitle, color: colors.textMuted },
+    link: { ...type.link, color: colors.accent },
+    navLabel: { ...type.navLabel, color: colors.navInactive },
+
+    // Aliases.
+    default: body,
+    title: h1,
+    defaultSemiBold: cardLabel,
+  });
+}

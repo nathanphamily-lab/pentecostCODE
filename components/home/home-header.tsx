@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { semantic } from '@/constants/tokens';
 
 // Placeholder child until profiles arrive (§8.3: one family login, child profiles).
 const CHILD_NAME = 'Friend';
@@ -55,11 +56,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFB703',
+    backgroundColor: semantic.highlightStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitial: {
-    color: '#fff',
+    color: semantic.onAccent,
   },
 });

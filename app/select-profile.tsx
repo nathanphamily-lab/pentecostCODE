@@ -6,20 +6,16 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { avatarColors as AVATAR_COLORS, palette, semantic } from '@/constants/tokens';
 import { useProfiles } from '@/lib/profile-context';
 import { AGE_TIERS, AgeTier, ChildProfile, createProfile } from '@/lib/profiles';
 import { useAuth } from '@/lib/auth-context';
-
-// Placeholder avatar palette until real avatars exist.
-const AVATAR_COLORS = ['#FF9F1C', '#2EC4B6', '#E71D36', '#9B5DE5', '#00BBF9', '#06D6A0'];
 
 export default function SelectProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { profiles, loading, selectProfile } = useProfiles();
-  const scheme = useColorScheme() ?? 'light';
-  const theme = Colors[scheme];
+  const theme = Colors.light;
 
   const [adding, setAdding] = useState(false);
 
@@ -102,7 +98,7 @@ function AddProfileForm({
 
   return (
     <View style={[styles.form, { borderColor: theme.icon, backgroundColor: theme.background }]}>
-      <ThemedText type="subtitle">New profile</ThemedText>
+      <ThemedText type="sectionHeader">New profile</ThemedText>
 
       <TextInput
         style={[styles.input, { color: theme.text, borderColor: theme.icon }]}
@@ -197,7 +193,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   avatarInitial: {
-    color: '#fff',
+    color: semantic.onAccent,
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
@@ -234,7 +230,7 @@ const styles = StyleSheet.create({
   },
   swatchSelected: {
     borderWidth: 3,
-    borderColor: '#000',
+    borderColor: palette.textPrimary,
   },
   formActions: {
     flexDirection: 'row',

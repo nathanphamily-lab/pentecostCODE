@@ -11,13 +11,12 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { semantic } from '@/constants/tokens';
 import { useAuth } from '@/lib/auth-context';
 
 export default function LoginScreen() {
   const { signIn, signUp } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const theme = Colors[scheme];
+  const theme = Colors.light;
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
@@ -126,7 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   error: {
-    color: '#E71D36',
+    color: semantic.error,
     fontSize: 14,
   },
   button: {

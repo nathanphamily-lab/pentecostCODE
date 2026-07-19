@@ -1,11 +1,17 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from '@expo-google-fonts/inter';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { palette } from '@/constants/tokens';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { ProfileProvider, useProfiles } from '@/lib/profile-context';
 
@@ -18,14 +24,22 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigator() {
   const { user, initializing } = useAuth();
   const { selectedProfile } = useProfiles();
+  // Fall through on `fontError` so a font-loading failure degrades to the
+  // system face rather than leaving the app stuck behind the splash screen.
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+  const fontsSettled = fontsLoaded || !!fontError;
 
   useEffect(() => {
-    if (!initializing) {
+    if (!initializing && fontsSettled) {
       SplashScreen.hideAsync();
     }
-  }, [initializing]);
+  }, [initializing, fontsSettled]);
 
-  if (initializing) {
+  if (initializing || !fontsSettled) {
     return null;
   }
 
@@ -52,15 +66,26 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+/** Light-only navigation theme, tinted to match the design tokens. */
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: palette.accent,
+    background: palette.bgFallback,
+    card: palette.surface,
+    text: palette.textPrimary,
+    border: palette.divider,
+  },
+};
 
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <AuthProvider>
         <ProfileProvider>
           <RootNavigator />
-          <StatusBar style="auto" />
+          <StatusBar style="dark" />
         </ProfileProvider>
       </AuthProvider>
     </ThemeProvider>

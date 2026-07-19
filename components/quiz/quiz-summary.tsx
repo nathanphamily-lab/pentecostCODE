@@ -8,9 +8,11 @@
  * Johnny is not rendered here — the Quiz screen keeps him pinned bottom-left across every
  * phase (§6.2/§4.3) and switches him to `celebrate` when this shows.
  */
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Fonts } from '@/constants/theme';
+import type { Tokens } from '@/constants/tokens';
+import { useTokens } from '@/hooks/use-tokens';
 
 type QuizSummaryProps = {
   starsEarned: number;
@@ -20,6 +22,8 @@ type QuizSummaryProps = {
 
 export function QuizSummary({ starsEarned, total, onDone }: QuizSummaryProps) {
   const stars = Array.from({ length: total }, (_, i) => i < starsEarned);
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   return (
     <View style={styles.card}>
@@ -48,58 +52,48 @@ export function QuizSummary({ starsEarned, total, onDone }: QuizSummaryProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 32,
-    paddingVertical: 36,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    gap: 20,
-    maxWidth: 560,
-    width: '100%',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  title: {
-    fontFamily: Fonts.rounded,
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#1B2430',
-    textAlign: 'center',
-  },
-  stars: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  star: {
-    fontSize: 44,
-  },
-  starEmpty: {
-    opacity: 0.3,
-  },
-  subtitle: {
-    fontFamily: Fonts.rounded,
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1B2430',
-    textAlign: 'center',
-  },
-  button: {
-    minHeight: 56,
-    paddingHorizontal: 36,
-    justifyContent: 'center',
-    borderRadius: 28,
-    backgroundColor: '#2A9D8F',
-  },
-  buttonLabel: {
-    fontFamily: Fonts.rounded,
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    card: {
+      ...t.card,
+      paddingVertical: t.spacing.xl,
+      paddingHorizontal: t.spacing.lg,
+      alignItems: 'center',
+      gap: t.spacing.lg,
+      maxWidth: t.contentMaxWidth,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    title: {
+      ...t.type.celebration,
+      color: t.colors.textPrimary,
+      textAlign: 'center',
+    },
+    stars: {
+      flexDirection: 'row',
+      gap: t.spacing.sm,
+    },
+    star: {
+      fontSize: 44,
+    },
+    starEmpty: {
+      opacity: 0.3,
+    },
+    subtitle: {
+      ...t.type.subtitle,
+      color: t.colors.textPrimary,
+      textAlign: 'center',
+    },
+    button: {
+      minHeight: 56,
+      paddingHorizontal: t.spacing.xl,
+      justifyContent: 'center',
+      borderRadius: 28,
+      backgroundColor: t.semantic.correct,
+    },
+    buttonLabel: {
+      ...t.type.sectionHeader,
+      color: t.semantic.onAccent,
+    },
+  });
+}

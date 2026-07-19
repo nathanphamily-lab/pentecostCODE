@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Quiz } from '@/constants/quiz';
+import type { QuizQuestion } from '@/constants/content';
 import type { JohnnyState } from '@/components/lesson/johnny';
 import { speechEngine, type SpeakHandle } from '@/lib/speech';
 
@@ -38,16 +38,20 @@ const PROMPT_DELAY_MS = 600;
 const CORRECT_LINES = ['Yes! You got it!', 'That is right! Great job!'];
 const WRONG_LINES = ['Good try! This one is the answer.', 'Nice try! Here is the answer.'];
 
-export function useQuiz(quiz: Quiz) {
+/**
+ * Choices are identified by position: the content schema keeps correctness on the choice
+ * itself (`isCorrect`) rather than a separate `correctId`, so there are no ids to match.
+ */
+export function useQuiz(questions: QuizQuestion[]) {
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [phase, setPhase] = useState<QuizPhase>('asking');
   const [starsEarned, setStarsEarned] = useState(0);
   const [johnnyLine, setJohnnyLine] = useState<string | null>(null);
   const [johnnyState, setJohnnyState] = useState<JohnnyState>('idle');
 
-  const total = quiz.questions.length;
-  const question = quiz.questions[questionIndex];
+  const total = questions.length;
+  const question = questions[questionIndex];
 
   // Every pending timer and utterance, so unmount can cancel all of them.
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -95,16 +99,16 @@ export function useQuiz(quiz: Quiz) {
    * highlight of the correct choice, then moves on. Either way the child is never stuck.
    */
   const answer = useCallback(
-    (choiceId: string) => {
+    (choiceIndex: number) => {
       if (phase !== 'asking' || !question) {
         return; // Input is locked during the reveal.
       }
 
-      const isCorrect = choiceId === question.correctId;
+      const isCorrect = !!question.choices[choiceIndex]?.isCorrect;
       const lines = isCorrect ? CORRECT_LINES : WRONG_LINES;
       const line = lines[questionIndex % lines.length];
 
-      setSelectedId(choiceId);
+      setSelectedIndex(choiceIndex);
       setPhase('revealing');
       setJohnnyState(isCorrect ? 'celebrate' : 'encourage');
       setJohnnyLine(line);
@@ -117,7 +121,7 @@ export function useQuiz(quiz: Quiz) {
 
       addTimer(() => {
         const next = questionIndex + 1;
-        setSelectedId(null);
+        setSelectedIndex(null);
         setJohnnyLine(null);
         setJohnnyState('idle');
         if (next < total) {
@@ -136,7 +140,7 @@ export function useQuiz(quiz: Quiz) {
     questionIndex,
     total,
     phase,
-    selectedId,
+    selectedIndex,
     starsEarned,
     johnnyLine,
     johnnyState,

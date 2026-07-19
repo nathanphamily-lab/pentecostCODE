@@ -12,9 +12,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { speechEngine, type SpeakHandle } from '@/lib/speech';
-import type { Story } from '@/constants/stories';
+import type { StoryContent } from '@/constants/content';
 
-export function useStoryPlayback(story: Story) {
+export function useStoryPlayback(story: StoryContent) {
   const router = useRouter();
 
   const [sentenceIndex, setSentenceIndex] = useState(0);
@@ -46,7 +46,7 @@ export function useStoryPlayback(story: Story) {
 
       handleRef.current?.cancel();
       handleRef.current = speechEngine.speak({
-        tokens: sentence.words.slice(fromWord),
+        tokens: sentence.words.slice(fromWord).map((word) => word.text),
         onToken: (i) => {
           const word = fromWord + i;
           wordRef.current = word;

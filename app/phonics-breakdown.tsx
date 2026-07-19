@@ -16,7 +16,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Johnny } from '@/components/lesson/johnny';
 import { PhonemeTile } from '@/components/phonics/phoneme-tile';
 import { breakDownWord } from '@/constants/phonics';
-import { Fonts } from '@/constants/theme';
+import type { Tokens } from '@/constants/tokens';
+import { useTokens } from '@/hooks/use-tokens';
 import { speechEngine, type SpeakHandle } from '@/lib/speech';
 
 /** Job A opening line — an invitation (§6.3). Job B would swap this for reassurance. */
@@ -27,6 +28,8 @@ export default function PhonicsBreakdownScreen() {
   const { word } = useLocalSearchParams<{ word?: string }>();
   const displayWord = word ?? '';
   const phonemes = useMemo(() => breakDownWord(displayWord), [displayWord]);
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   const [litIndex, setLitIndex] = useState(-1);
 
@@ -83,44 +86,38 @@ export default function PhonicsBreakdownScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(20, 30, 40, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 32,
-    paddingVertical: 36,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    gap: 28,
-    maxWidth: 560,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  word: {
-    fontFamily: Fonts.rounded,
-    fontSize: 52,
-    fontWeight: '700',
-    color: '#1B2430',
-  },
-  tiles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  johnny: {
-    position: 'absolute',
-    left: 20,
-    bottom: 28,
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: t.overlays.scrim,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: t.spacing.lg,
+    },
+    card: {
+      ...t.card,
+      paddingVertical: t.spacing.xl,
+      paddingHorizontal: t.spacing.lg,
+      alignItems: 'center',
+      gap: t.spacing.lg,
+      maxWidth: t.contentMaxWidth,
+      width: '100%',
+    },
+    word: {
+      ...t.type.display,
+      color: t.colors.textPrimary,
+    },
+    tiles: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: t.spacing.sm,
+    },
+    johnny: {
+      position: 'absolute',
+      left: t.spacing.lg,
+      bottom: t.spacing.lg,
+    },
+  });
+}

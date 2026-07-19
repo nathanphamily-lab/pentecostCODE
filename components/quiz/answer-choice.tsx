@@ -15,15 +15,16 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import type { AnswerChoice as AnswerChoiceContent } from '@/constants/quiz';
-import { Fonts } from '@/constants/theme';
+import type { QuizChoice } from '@/constants/content';
+import type { Tokens } from '@/constants/tokens';
+import { useTokens } from '@/hooks/use-tokens';
 
 export type AnswerChoiceState = 'idle' | 'correct' | 'wrong' | 'dimmed';
 
 type AnswerChoiceProps = {
-  choice: AnswerChoiceContent;
+  choice: QuizChoice;
   state: AnswerChoiceState;
   onPress: () => void;
   disabled?: boolean;
@@ -34,6 +35,8 @@ const POP_MS = 220;
 
 export function AnswerChoice({ choice, state, onPress, disabled }: AnswerChoiceProps) {
   const scale = useSharedValue(1);
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   useEffect(() => {
     if (state === 'correct') {
@@ -54,11 +57,11 @@ export function AnswerChoice({ choice, state, onPress, disabled }: AnswerChoiceP
         <View
           style={[
             styles.card,
-            { backgroundColor: choice.color },
+            { backgroundColor: choice.color ?? tokens.semantic.tileBackground },
             state === 'correct' && styles.cardCorrect,
             state === 'wrong' && styles.cardWrong,
           ]}>
-          <Text style={styles.emoji}>{choice.emoji}</Text>
+          <Text style={styles.emoji}>{choice.image}</Text>
           {state === 'correct' && <Text style={styles.sparkle}>✨</Text>}
         </View>
         <Text style={styles.label} numberOfLines={2}>
@@ -69,50 +72,46 @@ export function AnswerChoice({ choice, state, onPress, disabled }: AnswerChoiceP
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: CARD_SIZE,
-    alignItems: 'center',
-    gap: 8,
-  },
-  dimmed: {
-    opacity: 0.35,
-  },
-  card: {
-    width: CARD_SIZE,
-    height: CARD_SIZE,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  cardCorrect: {
-    borderColor: '#2A9D8F',
-  },
-  cardWrong: {
-    borderColor: '#E29578',
-  },
-  emoji: {
-    fontSize: 64,
-    textAlign: 'center',
-  },
-  sparkle: {
-    position: 'absolute',
-    top: 6,
-    right: 8,
-    fontSize: 24,
-  },
-  label: {
-    fontFamily: Fonts.rounded,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1B2430',
-    textAlign: 'center',
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    container: {
+      width: CARD_SIZE,
+      alignItems: 'center',
+      gap: t.spacing.sm,
+    },
+    dimmed: {
+      opacity: 0.35,
+    },
+    card: {
+      ...t.card,
+      width: CARD_SIZE,
+      height: CARD_SIZE,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      // `card.backgroundColor` is overridden by the choice's own crayon color,
+      // applied inline after this style in the array above.
+    },
+    cardCorrect: {
+      borderColor: t.semantic.correct,
+    },
+    cardWrong: {
+      borderColor: t.semantic.incorrect,
+    },
+    emoji: {
+      fontSize: 64,
+      textAlign: 'center',
+    },
+    sparkle: {
+      position: 'absolute',
+      top: 6,
+      right: 8,
+      fontSize: 24,
+    },
+    label: {
+      ...t.type.cardLabel,
+      color: t.colors.textPrimary,
+      textAlign: 'center',
+    },
+  });
+}

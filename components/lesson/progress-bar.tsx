@@ -2,9 +2,11 @@
  * Progress bar (§6.2): a rounded track with a fill plus an "X / Y" label showing how many
  * steps are complete — sentences on the Lesson screen, questions on the Quiz screen.
  */
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Fonts } from '@/constants/theme';
+import type { Tokens } from '@/constants/tokens';
+import { useTokens } from '@/hooks/use-tokens';
 
 type ProgressBarProps = {
   /** Steps completed so far. */
@@ -16,6 +18,8 @@ type ProgressBarProps = {
 export function ProgressBar({ current, total }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(current, total));
   const pct = total > 0 ? (clamped / total) * 100 : 0;
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   return (
     <View style={styles.container}>
@@ -29,30 +33,30 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  track: {
-    flex: 1,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 6,
-    backgroundColor: '#2A9D8F',
-  },
-  label: {
-    fontFamily: Fonts.rounded,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1B2430',
-    minWidth: 44,
-    textAlign: 'right',
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.spacing.sm,
+    },
+    track: {
+      flex: 1,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: t.overlays.controlSoft,
+      overflow: 'hidden',
+    },
+    fill: {
+      height: '100%',
+      borderRadius: 6,
+      backgroundColor: t.semantic.correct,
+    },
+    label: {
+      ...t.type.link,
+      color: t.colors.textPrimary,
+      minWidth: 44,
+      textAlign: 'right',
+    },
+  });
+}

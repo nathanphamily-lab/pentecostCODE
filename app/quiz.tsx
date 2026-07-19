@@ -22,28 +22,29 @@ import { ProgressBar } from '@/components/lesson/progress-bar';
 import { AnswerChoice, type AnswerChoiceState } from '@/components/quiz/answer-choice';
 import { QuizSummary } from '@/components/quiz/quiz-summary';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getQuiz, type QuizQuestion } from '@/constants/quiz';
-import { getStory } from '@/constants/stories';
-import { Fonts } from '@/constants/theme';
+import { getSceneBackground, type QuizQuestion } from '@/constants/content';
+import { getStoryContent } from '@/constants/content-library';
+import type { Tokens } from '@/constants/tokens';
 import { useQuiz, type QuizPhase } from '@/hooks/use-quiz';
+import { useTokens } from '@/hooks/use-tokens';
 
 /**
  * §6.4: on reveal the correct choice always highlights — whether or not it was the one
  * picked — the wrong pick is marked gently, and the rest fade back.
  */
 function choiceState(
-  choiceId: string,
+  choiceIndex: number,
   question: QuizQuestion,
-  selectedId: string | null,
+  selectedIndex: number | null,
   phase: QuizPhase,
 ): AnswerChoiceState {
   if (phase === 'asking') {
     return 'idle';
   }
-  if (choiceId === question.correctId) {
+  if (question.choices[choiceIndex].isCorrect) {
     return 'correct';
   }
-  if (choiceId === selectedId) {
+  if (choiceIndex === selectedIndex) {
     return 'wrong';
   }
   return 'dimmed';
@@ -51,13 +52,16 @@ function choiceState(
 
 export default function QuizScreen() {
   const router = useRouter();
-  const { storyId } = useLocalSearchParams<{ storyId?: string }>();
-  const quiz = useMemo(() => getQuiz(storyId), [storyId]);
-  // Same background as the story it follows, so the quiz feels like the same scene.
-  const story = useMemo(() => getStory(storyId), [storyId]);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  // The story carries its own quiz, so one lookup gives both the questions and — via the
+  // same scene key — the background, keeping the quiz in the place the story just left.
+  const story = useMemo(() => getStoryContent(id), [id]);
+  const scene = useMemo(() => getSceneBackground(story.background), [story.background]);
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
-  const { question, questionIndex, total, phase, selectedId, starsEarned, johnnyLine, johnnyState, answer } =
-    useQuiz(quiz);
+  const { question, questionIndex, total, phase, selectedIndex, starsEarned, johnnyLine, johnnyState, answer } =
+    useQuiz(story.quiz);
 
   // §4.1 Step 7: back to Home. Falls back to a replace when the quiz was opened directly
   // (deep link) and there is no stack to dismiss.
@@ -75,8 +79,8 @@ export default function QuizScreen() {
   return (
     <View style={styles.root}>
       {/* Placeholder illustrated scene: two-band sky/ground (§7, real art later). */}
-      <View style={[styles.band, { backgroundColor: story.background.sky }]} />
-      <View style={[styles.band, styles.ground, { backgroundColor: story.background.ground }]} />
+      <View style={[styles.band, { backgroundColor: scene.sky }]} />
+      <View style={[styles.band, styles.ground, { backgroundColor: scene.ground }]} />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Top row: back arrow + question progress. */}
@@ -87,7 +91,7 @@ export default function QuizScreen() {
             accessibilityLabel="Back to home"
             hitSlop={12}
             style={styles.iconButton}>
-            <IconSymbol name="chevron.left" size={28} color="#1B2430" />
+            <IconSymbol name="chevron.left" size={28} color={tokens.colors.textPrimary} />
           </Pressable>
           <View style={styles.progressWrap}>
             <ProgressBar current={completed} total={total} />
@@ -102,12 +106,12 @@ export default function QuizScreen() {
             <View style={styles.card}>
               <Text style={styles.prompt}>{question.prompt}</Text>
               <View style={styles.choices}>
-                {question.choices.map((choice) => (
+                {question.choices.map((choice, choiceIndex) => (
                   <AnswerChoice
-                    key={choice.id}
+                    key={`${choice.label}-${choiceIndex}`}
                     choice={choice}
-                    state={choiceState(choice.id, question, selectedId, phase)}
-                    onPress={() => answer(choice.id)}
+                    state={choiceState(choiceIndex, question, selectedIndex, phase)}
+                    onPress={() => answer(choiceIndex)}
                     disabled={phase !== 'asking'}
                   />
                 ))}
@@ -130,97 +134,85 @@ export default function QuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  band: {
-    ...StyleSheet.absoluteFillObject,
-    bottom: '35%',
-  },
-  ground: {
-    top: '65%',
-    bottom: 0,
-  },
-  safe: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'space-between',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: 8,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressWrap: {
-    flex: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 32,
-    paddingVertical: 28,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    gap: 24,
-    maxWidth: 560,
-    width: '100%',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  prompt: {
-    fontFamily: Fonts.rounded,
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1B2430',
-    textAlign: 'center',
-  },
-  choices: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-    paddingBottom: 8,
-  },
-  bubble: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  bubbleText: {
-    fontFamily: Fonts.rounded,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1B2430',
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+    },
+    band: {
+      ...StyleSheet.absoluteFillObject,
+      bottom: '35%',
+    },
+    ground: {
+      top: '65%',
+      bottom: 0,
+    },
+    safe: {
+      flex: 1,
+      paddingHorizontal: t.spacing.lg,
+      justifyContent: 'space-between',
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.spacing.sm,
+      paddingTop: t.spacing.sm,
+    },
+    iconButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: t.overlays.control,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    progressWrap: {
+      flex: 1,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingVertical: t.spacing.md,
+    },
+    card: {
+      ...t.card,
+      paddingVertical: t.spacing.lg,
+      paddingHorizontal: t.spacing.lg,
+      alignItems: 'center',
+      gap: t.spacing.lg,
+      maxWidth: t.contentMaxWidth,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    prompt: {
+      ...t.type.prompt,
+      color: t.colors.textPrimary,
+      textAlign: 'center',
+    },
+    choices: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: t.spacing.md,
+    },
+    bottomRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: t.spacing.sm,
+      paddingBottom: t.spacing.sm,
+    },
+    bubble: {
+      flex: 1,
+      backgroundColor: t.colors.surface,
+      borderRadius: t.card.borderRadius,
+      paddingVertical: t.spacing.sm,
+      paddingHorizontal: t.spacing.md,
+      marginBottom: t.spacing.sm,
+      ...t.controlShadow,
+    },
+    bubbleText: {
+      ...t.type.cardLabel,
+      color: t.colors.textPrimary,
+    },
+  });
+}

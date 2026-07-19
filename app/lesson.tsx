@@ -7,7 +7,8 @@
  * bottom-left; pause/play and a back arrow are the controls.
  *
  * All playback behavior lives in `useStoryPlayback`; this file is just the layout.
- * The story is chosen from an optional `storyId` route param and defaults to Creation.
+ * The story is looked up in the content library from an optional `id` route param and
+ * defaults to Creation.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -18,13 +19,19 @@ import { Johnny } from '@/components/lesson/johnny';
 import { ProgressBar } from '@/components/lesson/progress-bar';
 import { StoryTextCard } from '@/components/lesson/story-text-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getStory } from '@/constants/stories';
+import { getSceneBackground } from '@/constants/content';
+import { getStoryContent } from '@/constants/content-library';
+import type { Tokens } from '@/constants/tokens';
 import { useStoryPlayback } from '@/hooks/use-story-playback';
+import { useTokens } from '@/hooks/use-tokens';
 
 export default function LessonScreen() {
   const router = useRouter();
-  const { storyId } = useLocalSearchParams<{ storyId?: string }>();
-  const story = useMemo(() => getStory(storyId), [storyId]);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const story = useMemo(() => getStoryContent(id), [id]);
+  const scene = useMemo(() => getSceneBackground(story.background), [story.background]);
+  const tokens = useTokens();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
 
   const { sentenceIndex, wordIndex, isPlaying, isDone, total, currentSentence, togglePlay, onWordTap } =
     useStoryPlayback(story);
@@ -37,15 +44,15 @@ export default function LessonScreen() {
   // quiz would land on a finished story that immediately restarts narrating.
   useEffect(() => {
     if (isDone) {
-      router.replace({ pathname: '/quiz', params: { storyId: story.id } });
+      router.replace({ pathname: '/quiz', params: { id: story.id } });
     }
   }, [isDone, router, story.id]);
 
   return (
     <View style={styles.root}>
       {/* Placeholder illustrated scene: two-band sky/ground (§7, real art later). */}
-      <View style={[styles.band, { backgroundColor: story.background.sky }]} />
-      <View style={[styles.band, styles.ground, { backgroundColor: story.background.ground }]} />
+      <View style={[styles.band, { backgroundColor: scene.sky }]} />
+      <View style={[styles.band, styles.ground, { backgroundColor: scene.ground }]} />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Top row: back arrow + progress bar. */}
@@ -56,7 +63,7 @@ export default function LessonScreen() {
             accessibilityLabel="Back to home"
             hitSlop={12}
             style={styles.iconButton}>
-            <IconSymbol name="chevron.left" size={28} color="#1B2430" />
+            <IconSymbol name="chevron.left" size={28} color={tokens.colors.textPrimary} />
           </Pressable>
           <View style={styles.progressWrap}>
             <ProgressBar current={completed} total={total} />
@@ -84,7 +91,11 @@ export default function LessonScreen() {
             hitSlop={12}
             disabled={isDone}
             style={[styles.playButton, isDone && styles.playButtonDisabled]}>
-            <IconSymbol name={isPlaying ? 'pause.fill' : 'play.fill'} size={36} color="#fff" />
+            <IconSymbol
+              name={isPlaying ? 'pause.fill' : 'play.fill'}
+              size={36}
+              color={tokens.semantic.onAccent}
+            />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -92,65 +103,63 @@ export default function LessonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  band: {
-    ...StyleSheet.absoluteFillObject,
-    bottom: '35%',
-  },
-  ground: {
-    top: '65%',
-    bottom: 0,
-  },
-  safe: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: 'space-between',
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: 8,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressWrap: {
-    flex: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingBottom: 8,
-  },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#2A9D8F',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  playButtonDisabled: {
-    opacity: 0.4,
-  },
-});
+function makeStyles(t: Tokens) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+    },
+    band: {
+      ...StyleSheet.absoluteFillObject,
+      bottom: '35%',
+    },
+    ground: {
+      top: '65%',
+      bottom: 0,
+    },
+    safe: {
+      flex: 1,
+      paddingHorizontal: t.spacing.lg,
+      justifyContent: 'space-between',
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: t.spacing.sm,
+      paddingTop: t.spacing.sm,
+    },
+    iconButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: t.overlays.control,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    progressWrap: {
+      flex: 1,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingVertical: t.spacing.md,
+    },
+    bottomRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      paddingBottom: t.spacing.sm,
+    },
+    playButton: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: t.semantic.correct,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...t.controlShadow,
+    },
+    playButtonDisabled: {
+      opacity: 0.4,
+    },
+  });
+}
