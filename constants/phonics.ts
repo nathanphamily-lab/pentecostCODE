@@ -47,7 +47,7 @@ function getIndex(): Map<string, Phoneme[]> {
       continue;
     }
     if (item.type === 'story') {
-      item.sentences.forEach((sentence) => sentence.words.forEach(add));
+      item.pages.forEach((page) => page.sentences.forEach((sentence) => sentence.words.forEach(add)));
     } else {
       add(item.targetWord);
     }

@@ -27,15 +27,24 @@ type StubBase = {
   unlockedBy?: string[];
 };
 
-/** A planned Bible story (§5.2): metadata only, no script or quiz yet. */
-function plannedStory(stub: StubBase & { background: string; phonicsFocus: string[] }): StoryContent {
+/**
+ * A planned Bible story (§5.2): metadata only, no pages or quiz yet.
+ *
+ * The stub's scene key is kept as `quizBackground` — with no pages there is nothing to
+ * derive a backdrop from, and it becomes page 1's `background` once the script is written.
+ */
+function plannedStory({
+  background,
+  ...stub
+}: StubBase & { background: string; phonicsFocus: string[] }): StoryContent {
   return {
     ...stub,
     type: 'story',
     category: 'bibleStories',
     skills: ['pronunciation', 'comprehension'],
     status: 'planned',
-    sentences: [],
+    pages: [],
+    quizBackground: background,
     quiz: [],
   };
 }
@@ -155,7 +164,7 @@ export function getContent(id?: string | null): Content | undefined {
  */
 export function getStoryContent(id?: string | null): StoryContent {
   const item = getContent(id);
-  if (item && item.type === 'story' && item.sentences.length > 0) {
+  if (item && item.type === 'story' && item.pages.length > 0) {
     return item;
   }
   return DEFAULT_CONTENT;

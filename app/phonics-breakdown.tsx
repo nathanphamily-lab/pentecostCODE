@@ -23,10 +23,23 @@ import { speechEngine, type SpeakHandle } from '@/lib/speech';
 /** Job A opening line — an invitation (§6.3). Job B would swap this for reassurance. */
 const JOB_A_INTRO = "Ooh, let's look at this word!";
 
+/**
+ * Trim the punctuation a word carries from the prose, so the headline reads `Don't`
+ * rather than `"Don't` and `place` rather than `place.`.
+ *
+ * Story words keep their sentence punctuation (that is what the child reads on the page),
+ * but it has no business in the 52pt word at the top of this card — a third of the tokens
+ * in a scripted story arrive with a comma, colon, or opening quote attached. Only the
+ * outer edges are stripped: apostrophes and hyphens *inside* a word are part of it.
+ */
+function trimPunctuation(word: string): string {
+  return word.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '') || word;
+}
+
 export default function PhonicsBreakdownScreen() {
   const router = useRouter();
   const { word } = useLocalSearchParams<{ word?: string }>();
-  const displayWord = word ?? '';
+  const displayWord = trimPunctuation(word ?? '');
   const phonemes = useMemo(() => breakDownWord(displayWord), [displayWord]);
   const tokens = useTokens();
   const styles = useMemo(() => makeStyles(tokens), [tokens]);

@@ -13,9 +13,11 @@ type ProgressBarProps = {
   current: number;
   /** Total steps. */
   total: number;
+  /** Overrides the default "X / Y" readout, e.g. "Page 2 of 3" on the Story screen. */
+  label?: string;
 };
 
-export function ProgressBar({ current, total }: ProgressBarProps) {
+export function ProgressBar({ current, total, label }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(current, total));
   const pct = total > 0 ? (clamped / total) * 100 : 0;
   const tokens = useTokens();
@@ -26,8 +28,8 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${pct}%` }]} />
       </View>
-      <Text style={styles.label}>
-        {clamped} / {total}
+      <Text style={styles.label} numberOfLines={1}>
+        {label ?? `${clamped} / ${total}`}
       </Text>
     </View>
   );

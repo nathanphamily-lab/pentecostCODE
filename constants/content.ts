@@ -168,12 +168,29 @@ export type BaseContent = {
   status: ContentStatus;
 };
 
+/**
+ * One spread of the picture book: a single illustration plus the sentences read over it.
+ *
+ * The illustration is fixed for the whole page — it only changes when the page turns.
+ * Within a page the text card advances sentence by sentence (§6.2: "2–3 lines at a time").
+ */
+export type Page = {
+  /** Stable slug, unique within the story: "creation-p1". */
+  id: string;
+  /** Illustrated scene asset key for this page, resolved by `getPageArt`. */
+  background: string;
+  /** Plain-language description of the illustration, for the designer. Doubles as the
+   *  on-screen placeholder text until the art for `background` is delivered. */
+  artBrief?: string;
+  sentences: Sentence[];
+};
+
 /** A Bible story → Story Screen (§6.2) followed by its quiz (§6.4). */
 export type StoryContent = BaseContent & {
   type: 'story';
-  /** Scene key resolved by `getSceneBackground`. */
-  background: string;
-  sentences: Sentence[];
+  pages: Page[];
+  /** Scene key for the quiz backdrop; defaults to the last page's. See `getQuizBackground`. */
+  quizBackground?: string;
   quiz: QuizQuestion[];
 };
 
@@ -249,4 +266,30 @@ const FALLBACK_SCENE: SceneBackground = SCENE_BACKGROUNDS['creation-sky-field'];
 
 export function getSceneBackground(key: string): SceneBackground {
   return SCENE_BACKGROUNDS[key] ?? FALLBACK_SCENE;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Page illustrations                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Real story illustrations, keyed by a page's `background`.
+ *
+ * Empty until the artwork is delivered. Adding an entry is the *only* change needed to
+ * light up a page — the Story screen renders a placeholder (warm fill + the page's
+ * `artBrief`) for any key missing here, so the flow is fully testable meanwhile.
+ *
+ *   'creation-p1': require('@/assets/images/stories/creation-p1.png'),
+ *
+ * A remote URL works too, and gets prefetched a page ahead so turns never pop.
+ */
+export const PAGE_ART: Record<string, number | string> = {};
+
+export function getPageArt(key: string): number | string | null {
+  return PAGE_ART[key] ?? null;
+}
+
+/** Scene key for a story's quiz backdrop: explicit override, else the last page's. */
+export function getQuizBackground(story: StoryContent): string {
+  return story.quizBackground ?? story.pages[story.pages.length - 1]?.background ?? 'creation-sky-field';
 }

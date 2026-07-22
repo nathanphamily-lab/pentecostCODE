@@ -22,7 +22,7 @@ import { ProgressBar } from '@/components/lesson/progress-bar';
 import { AnswerChoice, type AnswerChoiceState } from '@/components/quiz/answer-choice';
 import { QuizSummary } from '@/components/quiz/quiz-summary';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getSceneBackground, type QuizQuestion } from '@/constants/content';
+import { getQuizBackground, getSceneBackground, type QuizQuestion } from '@/constants/content';
 import { getStoryContent } from '@/constants/content-library';
 import type { Tokens } from '@/constants/tokens';
 import { useQuiz, type QuizPhase } from '@/hooks/use-quiz';
@@ -56,7 +56,7 @@ export default function QuizScreen() {
   // The story carries its own quiz, so one lookup gives both the questions and — via the
   // same scene key — the background, keeping the quiz in the place the story just left.
   const story = useMemo(() => getStoryContent(id), [id]);
-  const scene = useMemo(() => getSceneBackground(story.background), [story.background]);
+  const scene = useMemo(() => getSceneBackground(getQuizBackground(story)), [story]);
   const tokens = useTokens();
   const styles = useMemo(() => makeStyles(tokens), [tokens]);
 

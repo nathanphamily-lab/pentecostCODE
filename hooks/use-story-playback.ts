@@ -2,84 +2,137 @@
  * Playback state machine for the Lesson/Story screen (§4.1 Steps 1–5).
  *
  * Owns the "where are we in the story" state and drives the swappable speech engine
- * (`lib/speech.ts`) so `app/lesson.tsx` stays a thin view. Highlighting, auto-advance
- * between sentences, pause/resume, and the tap-to-break-down handoff all live here.
+ * (`lib/speech.ts`) so `app/lesson.tsx` stays a thin view. Highlighting, auto-advance,
+ * page turns, pause/resume, and the tap-to-break-down handoff all live here.
+ *
+ * The story is a picture book: a list of pages, each with one illustration and one or
+ * more sentences. Position is tracked as a flat *step* index over
+ * `pages × sentences`, so advancing is always `step + 1` — a step that crosses into the
+ * next page is what makes the illustration change. Narration waits out the turn
+ * animation (`PAGE_TURN_SETTLE_MS`) so a new page is spoken over settled artwork.
  *
  * Pause/resume is implemented as stop + re-speak-the-remainder (rather than native
  * `Speech.pause`/`resume`, which are iOS-only) so behavior matches on iOS and Android.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { PAGE_TURN_SETTLE_MS } from '@/constants/story-motion';
 import { speechEngine, type SpeakHandle } from '@/lib/speech';
 import type { StoryContent } from '@/constants/content';
+
+/** Where a flat step lands in the book. */
+type Step = { pageIndex: number; sentenceIndex: number };
 
 export function useStoryPlayback(story: StoryContent) {
   const router = useRouter();
 
-  const [sentenceIndex, setSentenceIndex] = useState(0);
+  // Flatten pages → sentences once, so traversal (forward, back, auto-advance) is just
+  // arithmetic on a single index and page turns fall out of comparing pageIndex.
+  const steps: Step[] = useMemo(
+    () =>
+      story.pages.flatMap((page, pageIndex) =>
+        page.sentences.map((_, sentenceIndex) => ({ pageIndex, sentenceIndex })),
+      ),
+    [story],
+  );
+  const stepCount = steps.length;
+  const pageCount = story.pages.length;
+
+  const [stepIndex, setStepIndex] = useState(0);
   const [wordIndex, setWordIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  /** Which way the last move went; the screen slides the artwork accordingly. */
+  const [direction, setDirection] = useState<1 | -1>(1);
 
   // Refs mirror state so the speech-engine callbacks (which close over stale state)
   // always read the live position, and so `play()` can resume from it.
   const handleRef = useRef<SpeakHandle | null>(null);
-  const sentenceRef = useRef(0);
+  const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepRef = useRef(0);
   const wordRef = useRef(0);
   const doneRef = useRef(false);
 
-  const total = story.sentences.length;
+  /** Drop any in-flight speech and any narration still waiting on a page turn. */
+  const silence = useCallback(() => {
+    handleRef.current?.cancel();
+    handleRef.current = null;
+    if (settleRef.current) {
+      clearTimeout(settleRef.current);
+      settleRef.current = null;
+    }
+  }, []);
 
-  /** Speak sentence `sIndex` starting at word `fromWord`, auto-advancing at its end. */
+  /**
+   * Move to `step` and speak it from `fromWord`, auto-advancing at its end.
+   * `delayMs` holds narration back while a page turn plays; the position (and so the
+   * artwork) updates immediately.
+   */
   const speakFrom = useCallback(
-    (sIndex: number, fromWord: number) => {
-      const sentence = story.sentences[sIndex];
+    (step: number, fromWord: number, delayMs = 0) => {
+      const at = steps[step];
+      const sentence = at && story.pages[at.pageIndex]?.sentences[at.sentenceIndex];
       if (!sentence) {
         return;
       }
-      sentenceRef.current = sIndex;
+
+      stepRef.current = step;
       wordRef.current = fromWord;
-      setSentenceIndex(sIndex);
+      setStepIndex(step);
       setWordIndex(fromWord);
       setIsPlaying(true);
 
-      handleRef.current?.cancel();
-      handleRef.current = speechEngine.speak({
-        tokens: sentence.words.slice(fromWord).map((word) => word.text),
-        onToken: (i) => {
-          const word = fromWord + i;
-          wordRef.current = word;
-          setWordIndex(word);
-        },
-        onDone: () => {
-          const next = sIndex + 1;
-          if (next < total) {
-            speakFrom(next, 0); // §4.1 Step 2: keep narrating to the end.
-          } else {
-            handleRef.current = null;
-            doneRef.current = true;
-            setIsDone(true);
-            setIsPlaying(false);
-          }
-        },
-      });
+      silence();
+
+      const begin = () => {
+        settleRef.current = null;
+        handleRef.current = speechEngine.speak({
+          tokens: sentence.words.slice(fromWord).map((word) => word.text),
+          onToken: (i) => {
+            const word = fromWord + i;
+            wordRef.current = word;
+            setWordIndex(word);
+          },
+          onDone: () => {
+            const next = step + 1;
+            if (next < stepCount) {
+              // §4.1 Step 2: keep narrating. Crossing into a new page turns it.
+              const turning = steps[next].pageIndex !== at.pageIndex;
+              if (turning) {
+                setDirection(1);
+              }
+              speakFrom(next, 0, turning ? PAGE_TURN_SETTLE_MS : 0);
+            } else {
+              handleRef.current = null;
+              doneRef.current = true;
+              setIsDone(true);
+              setIsPlaying(false);
+            }
+          },
+        });
+      };
+
+      if (delayMs > 0) {
+        settleRef.current = setTimeout(begin, delayMs);
+      } else {
+        begin();
+      }
     },
-    [story, total],
+    [silence, steps, stepCount, story],
   );
 
   const pause = useCallback(() => {
-    handleRef.current?.cancel();
-    handleRef.current = null;
+    silence();
     setIsPlaying(false);
-  }, []);
+  }, [silence]);
 
   /** Resume (or start) from the current position; no-op once the story is finished. */
   const play = useCallback(() => {
     if (doneRef.current) {
       return;
     }
-    speakFrom(sentenceRef.current, wordRef.current);
+    speakFrom(stepRef.current, wordRef.current);
   }, [speakFrom]);
 
   const togglePlay = useCallback(() => {
@@ -89,6 +142,34 @@ export function useStoryPlayback(story: StoryContent) {
       play();
     }
   }, [isPlaying, pause, play]);
+
+  /**
+   * Jump to a step from a deliberate tap or swipe. Restarts the target sentence from its
+   * first word (a child who navigates back wants to hear it again, not the tail of it).
+   */
+  const goTo = useCallback(
+    (step: number) => {
+      if (doneRef.current || step < 0) {
+        return;
+      }
+      if (step >= stepCount) {
+        // Past the last sentence: same ending as auto-advance — on to the quiz.
+        silence();
+        doneRef.current = true;
+        setIsDone(true);
+        setIsPlaying(false);
+        return;
+      }
+      const from = steps[stepRef.current];
+      const to = steps[step];
+      setDirection(step < stepRef.current ? -1 : 1);
+      speakFrom(step, 0, from && to && from.pageIndex !== to.pageIndex ? PAGE_TURN_SETTLE_MS : 0);
+    },
+    [silence, speakFrom, stepCount, steps],
+  );
+
+  const goNext = useCallback(() => goTo(stepRef.current + 1), [goTo]);
+  const goPrev = useCallback(() => goTo(stepRef.current - 1), [goTo]);
 
   /**
    * §4.1 Step 3: tapping a word pauses playback and opens the Phonics Breakdown for
@@ -113,16 +194,26 @@ export function useStoryPlayback(story: StoryContent) {
     }, [play, pause]),
   );
 
+  const at = steps[stepIndex];
+  const pageIndex = at?.pageIndex ?? 0;
+
   return {
-    sentenceIndex,
+    pageIndex,
+    pageCount,
+    page: story.pages[pageIndex],
+    sentenceIndex: at?.sentenceIndex ?? 0,
+    currentSentence: at ? story.pages[pageIndex]?.sentences[at.sentenceIndex] : undefined,
+    stepIndex,
     wordIndex,
+    direction,
     isPlaying,
     isDone,
-    total,
-    currentSentence: story.sentences[sentenceIndex],
+    canGoPrev: stepIndex > 0,
     play,
     pause,
     togglePlay,
+    goNext,
+    goPrev,
     onWordTap,
   };
 }

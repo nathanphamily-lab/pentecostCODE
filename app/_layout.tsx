@@ -9,6 +9,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { palette } from '@/constants/tokens';
@@ -80,14 +82,22 @@ const navigationTheme = {
 };
 
 export default function RootLayout() {
+  // GestureHandlerRootView must wrap the whole app or gesture handlers below it (the
+  // Story screen's swipe-to-turn) silently never fire.
   return (
-    <ThemeProvider value={navigationTheme}>
-      <AuthProvider>
-        <ProfileProvider>
-          <RootNavigator />
-          <StatusBar style="dark" />
-        </ProfileProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={navigationTheme}>
+        <AuthProvider>
+          <ProfileProvider>
+            <RootNavigator />
+            <StatusBar style="dark" />
+          </ProfileProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
